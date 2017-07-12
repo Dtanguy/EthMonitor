@@ -99,6 +99,7 @@ var graphMax = 500;
 var c1 = 'ETH-EUR';
 var c2 = 'BTC-EUR';
 var choice = c1;
+var audio = new Audio('bell.mp3');
 
 function timestampToString(timestamp){
 	var d = new Date(timestamp);
@@ -150,6 +151,19 @@ function getLastDate(){
 		if(data){		
 			var DD = JSON.parse(data);
 			//console.log("here !", data);
+
+			var b = parseFloat($("#alertBelow").val());
+			if (b && b > 0 && DD.buy < b && parseFloat(config.data.datasets[1].data[config.data.datasets[1].data.length - 1]) >= b) {
+				audio.play();
+				setTimeout(()=>{audio.pause()},2200);
+			}
+
+			var u = parseFloat($("#alertUpper").val());
+			if (u && u > 0 && DD.buy > u && parseFloat(config.data.datasets[1].data[config.data.datasets[1].data.length - 1]) <= u) {
+				audio.play();
+				setTimeout(()=>{audio.pause()},2200);
+			}
+
 			updateGraph(DD.spot, DD.buy, DD.sell, DD.gdaxBuy, DD.gdaxSell, DD.timestamp);
 		}
 	}).fail(function() {
