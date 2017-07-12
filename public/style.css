@@ -1,0 +1,78 @@
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+.theme-color {
+	color: #58ACFA;
+	background-color: #58ACFA;
+}
+
+body {	
+    background-color: white;
+    //background-image: url(img/fond2.png);
+	font-family: Helvetica, Arial, sans-serif;
+    color: #424242;
+    display: flex;
+    min-width: 650px;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+    max-width: 2000px;
+}
+
+
+.logo {
+	width: 100%;
+	margin-top: -20px;
+}
+
+.brand-logo {
+    left: 50px;
+}
+
+.uppercase {
+    text-transform: uppercase;
+}
+
+.center {
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.card-content{
+	padding: 0;
+	margin: 0;
+}
+
+.radio {
+	display: inline-block;
+	margin: 5px;
+}
+
+canvas {
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+.btn {
+	display:inline-block;
+	margin-left: 10px; 
+	float: left;
+}
+
+.ping {
+	display:inline-block;
+	float: right;
+	margin-right: 30px; 
+	font-size: 1.4em;
+}
+
+.repere {
+	width: 80%;
+	line-height: 30px;
+}
