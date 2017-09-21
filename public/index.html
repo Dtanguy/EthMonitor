@@ -3,121 +3,63 @@
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<link rel="shortcut icon" href="">
 		
-		<title>Coin Data</title>
+		<title>Crypto Data</title>
 
 		<!--Import Google Icon Font -->
 		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-		<!--Import materialize.css -->
-		<link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.99.0/css/materialize.min.css" media="screen,projection"/>
-		<!-- Font Awesome >
-		<link rel="stylesheet" href="./font-awesome/css/font-awesome.min.css"-->
 		<!-- My css -->
 		<link rel="stylesheet" type="text/css" href="./style.css"/> 
 		
 	</head>
   
   <body> 
-  
-  
-    <!--header class="navbar-fixed">	
-		<nav>
-			<div class="nav-wrapper theme-color">
-				<a href="#!" class="brand-logo">Coin Data</a>
-				<ul class="right hide-on-med-and-down uppercase">
-					<li><a href="/">Home</a></li>
-					<li><a @click="showModal = true" >Add</a></li>
-					<li><a href="#Parametre">Parameter</a></li>
-				</ul>
-				<ul class="side-nav" id="mobile-demo uppercase">
-					<li><a href="/">Home</a></li>
-					<li><a @click="showModal = true" >Add</a></li>
-					<li><a href="#Parametre">Parameter</a></li>
-				</ul>
-			</div>
-		</nav>		
-	</header-->		
 	
-	
-  	<main>
-	
-		<!-- ETH -->
-		<div class="row" style="margin-top:2%;">	
-			<div class="case col s0 ml1 l2"></div>
-			<div class="case col s12 ml10 l8">
-				<div class="card">   
-					
-					<div class="card-content">	
-						<div class="case col s4 ml4 l4" style="margin: 0; padding: 0;">
-							<a id="btn" onclick="changeMoney()" class="waves-effect waves-light btn blue lighten-2">Switch to BTC-EUR</a>
-						</div>						
-						<div class="case col s4 ml4 l4" style="margin: 0; padding: 0;">							
-							<input onchange="changeGraphMax(this.value)" style="width:100%;" type="range" id="nbVal" min="0" max="1000" />
-						</div>						
-						<div class="case col s4 ml4 l4" style="margin: 0; padding: 0;">
-							<label id="ping" class="ping" >Last get: </label> 
-						</div>
-						<br><br>	
-					</div>		
-					
-					<div class="card-action">	
-						<center><canvas id="graph"></canvas></center>
-					</div>
-					
-					<div class="card-action">
-					    <label style="margin: 0 20px;" for="email">cours: </label>
-						<input style="margin: 0; width: 30%;" id="cour" type="number" class="validate">         
-						
-						<label style="margin: 0 20px; margin-left:40px;" for="email">valeur: </label>
-						<input style="margin: 0; width: 30%;" id="valeur" type="number" class="validate">         
-
-						<div style="display:inline-block; float: right; margin: 12px 20px;" class="switch">
-							<label>
-							  Off
-							  <input onchange="addMarker(this.value)" type="checkbox">
-							  <span onchange="addMarker(this.value)" class="lever"></span>
-							  On
-							</label>
-						</div>						  
-					</div>
-					
-					<div class="card-action">
-						<label style="margin: 0 20px;">Alert => </label>
-							
-						<label style="margin: 0 20px; margin-left:40px;" for="alertBelow">Below: </label>
-						<input style="margin: 0; width: 30%;" id="alertBelow" type="text" class="validate">   
-
-					    <label style="margin: 0 20px;" for="alertUpper">Upper: </label>
-						<input style="margin: 0; width: 30%;" id="alertUpper" type="text" class="validate">         
-						      
-
-								  
-					</div>
-				</div>
-			</div>
-			<div class="case col s0 ml1 l2"></div>
-		</div>
-	
+		<div class="spacer"></div>
 		
-		<!-- BTC 		
-		<div class="row" style="margin-top:1%;">	
-			<div class="case col s0 ml1 l2"></div>
-			<div class="case col s12 ml10 l8">
-				<div class="card">            
-					<div class="card-content">
-						<center><canvas id="canvasBtc"></canvas></center>
-					</div>
+		<div class="container">
+			<div class="full card">
+			
+				<div class="head" style="height: 25px;">
+					<label id="ping" style="float: right;">ETH, Last get: </label>
+					<label id="nbValue" style="float: left;">Display 500 points</label>					
 				</div>
-			</div>	
-			<div class="case col s0 ml1 l2"></div>			
+				
+				<div class="body">
+					
+					<input onchange="changeGraphMax(this.value)" style="width:90%;" type="range" id="nbVal" min="0" max="1000"/>
+					<canvas id="graph"></canvas>
+				</div>
+				
+				<div class="foot">
+				
+					<label style="float: left;">Calcul Off/On</label>
+					<input style="float: left;" onchange="" type="checkbox"/>						
+					
+					<label>cours: </label>	
+					<input id="cour" type="number" class="validate"/> 
+					<label>valeur: </label>
+					<input id="valeur" type="number" class="validate"/>
+					
+					<br>
+					
+					<label style="float: left;" >Alert Off/On</label>
+					<input style="float: left;" onchange="addMarker(this.value)" type="checkbox"/>	
+					
+					<label>Below: </label>
+					<input id="alertBelow" type="text" class="validate"/>
+					<label>Upper: </label>
+					<input id="alertUpper" type="text" class="validate">  					
+						
+				</div>					
+				
+			</div>
 		</div>
-	-->
-	</main>
 	  
   </body>	
   
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle.min.js"></script>
   <script src="./scriptIndex.js"></script>
   

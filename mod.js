@@ -1,123 +1,131 @@
-var io = require('socket.io-client');
-var timeoutCallback = require('timeout-callback');
-var socket;
-var name = "noName";
-var verbose = true;
+var mqtt = require('mqtt');
+var rip = require("ip");
+
+var myName = 'noName';
+var myNum = -1;
+
+var mip = rip.address();
 var tab = [];
-var state = 0;
+var client;
+
+var settings = {
+	connectTimeout: 5000,
+	keepalive: 65000,
+	username: '',
+    password: ''
+}
 
 function setup(nm, ip, port){
-	socket = io.connect('http://' + ip + ':' + port, {reconnect: true});
-	socket.heartbeatTimeout = 1000;
-	name = nm;
-	state = 1;
 	
-	socket.on('connect', function (socket) {
-		publish('/register', {name : name}, function(err, data){
-			if(!err){
-				for (var i = 0; i < tab.length; i++){
-					console.log("HAAAAAA");
-					publish('/subscribe', tab[i]);
-				}
-			}
-		});
-		if(connected){
-			connected();
-		}else{
-			err('No connected function');
-		}	
-	});
+	if(nm != ''){
+		myName = nm;
+	}else{
+		myName = 'unKnow';
+	}
+	myNum =	Math.random().toString(16).substr(2, 8);	
+	settings.clientId = myName + '-' + myNum;
+	
+	if(port){
+		client = mqtt.connect('mqtt://' + ip + ':' + port, settings);
+	}else{
+		client = mqtt.connect('mqtt://' + ip, settings);
+	}
 
+	client.on('connect', function () {
+		if(typeof connected === "function"){
+			connected();
+			publish('/' +myName + '-' + myNum + '/ping', {});
+		}	
+	});	
 	
-	socket.on('msgFromCore', function(msg) {
-		try {
-			if(msg){
-				if(msg.channel && msg.data){
-					for (var i = 0; i < tab.length; i++){
-						if (msg.channel == tab[i].chan){
-							if(tab[i].cb){
-								log('<= ' + msg.channel + '; data : ' + JSON.stringify(msg.data))
-								//console.log('<= ' + msg.channel + '; data : ' + JSON.stringify(msg.data));
-								tab[i].cb(msg.data);
-							}
-						}
-					}
-					state = 2;
-				}else{
-					log('<= ???');
-					state = -1;
-					//console.log('<= ???');
-				}
-			}else{
-				log('<= ???');
-				state = -1;
-				//console.log('<= ???');
-			}
+	client.on('message', function (topic, msg) {
+		var msg = msg.toString();
 		
-		}catch(e){
-			err('ERR' + e);
+		if(!topic || !msg){
+			return;
+		}
+		
+		for (var i = 0; i < tab.length; i++){
+			if (topic == tab[i].chan){
+				if(tab[i].cb){
+					try {
+						var msg2 = JSON.parse(msg);
+					} catch (e) {
+						msg2 = {err: e, str: msg};
+					}
+					tab[i].cb(msg2);
+				}
+			}
+		}
+		
+		if(typeof allPub === "function"){
+			allPub(topic, msg2);
+		}
+		
+	});
+	
+	subscribe('/' + myName + '-' + myNum + '/exit', function () {
+		process.exit(1);
+	});
+		
+	subscribe('/' + myName + '-' + myNum + '/justdoit', function (msg) {
+		if(msg.ask){
+			try{
+				var ans;
+				eval(msg.ask);
+				publishLocal('/justdoit', {answer: ans});
+			}catch(r){
+				publishLocal('/justdoit', {err: r});
+			}	
 		}
 	});
-	
-	socket.on('disconnect', function(){
-		//console.log('disconnected !!'); 
-		log('disconnected !!'); 
-	});
-
 }
 
-function subscribe(channel, callback){
-	publish('/subscribe', channel);
-	tab.push({chan: channel, cb: callback});	
+
+function publish(channel, msg){
+	try {
+		msg.from = myName + '-' + myNum;
+		msg.ip = mip;
+		client.publish(channel, JSON.stringify(msg));
+	}catch(e){
+		console.log(e);
+	}		
 }
 
-function subscribeLocal(channel, callback){
-	subscribe('/' + name + channel, callback);
+
+function subscribe(chann, callback){
+	try {
+		client.subscribe(chann);
+		tab.push({chan: chann, cb: callback});		
+	}catch(e){
+		console.log(e);
+	}
 }
 
-function unsubscribe(channel){
+
+function unsubscribe(chann){
 	var t = [];
 	for (var i = 0; i < tab.length; i++){
-		if (channel == tab[i].chan){
+		if (chann == tab[i].chan){
 			t.push(i);					
 		}
 	}
 	for (var i = 0; i < t.length; i++){
 		tab.splice(t[i],1);
+		publish('/unsubscribe', {name: myName + '-' + myNum, channel: chann});
 	}
 }
 
-function publish(chan, d, cb){
-	try {
-		if(cb){
-			socket.emit('msgFromCli', {channel: chan, data: d}, timeoutCallback(1000, cb));
-		}else{
-			socket.emit('msgFromCli', {channel: chan, data: d});
-		}	
-		console.log('=> ' + chan + '; data : ' + JSON.stringify(d));
-	}catch(e){
-		//err('ERR =>' + e);
-		cb(e);
-	}
-}
 
 function err(txt){
-	state = -2;
-	publish('/' + name + '/err', txt, function(e, data){
-		if (e){
-			console.log(name + ' : ERROR SEND ERROR !');
-		}
-	});
-	console.log('/' + name + '/err' + ' ' + txt);
+	publish('/ERROR', {err: txt});
+	console.log('\x1b[41m%s\x1b[0m', '/ERROR', txt);
+	console.log('');
 }
 
+
 function log(txt){
-	if(verbose){
-		publish('/' + name + '/log', txt, function(e, data){
-			if (e){
-				console.log(name + ' : ERROR SEND LOG !');
-			}
-		});
-		console.log('/' + name + '/log' + ' ' + txt);
-	}
+	publish('/LOG', {log: txt});
+	console.log('\x1b[36m%s\x1b[0m', '/LOG {from: ' + myName + '-' + myNum + '}', txt);
+	console.log('');
 }

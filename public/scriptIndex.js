@@ -1,7 +1,8 @@
+
+
 /***************************** Graph config *******************************/
 
 Chart.defaults.global.animationSteps = 1;
-
 var lineSize = 1;
 var radius = 0;
 
@@ -53,20 +54,6 @@ var config = {
 	},
     options: {
         responsive: true,
-        title:{
-			display:false,
-			text:'Chart.js Line Chart'
-		},
-        tooltips: {
-			display: false,
-            mode: 'index',
-            intersect: false,
-        },
-        hover: {
-			display: false,
-            mode: 'nearest',
-            intersect: true
-        },
         scales: {
             xAxes: [{
                 display: true,
@@ -89,6 +76,10 @@ var config = {
 var ctx = $("#graph")[0].getContext('2d');
 var myLine = new Chart(ctx, config);
 
+
+
+
+
 /***************************** API CALL *******************************/
 var getLast = '/getdata';		
 var getChange = '/getchange';
@@ -96,9 +87,7 @@ var getSince = '/getsince';
 var lastTimestamp = -1;
 var yesterday = new Date(Date.now() - 86400000);// new Date(Date.now() - (1000*60*60*60*4));
 var graphMax = 500;
-var c1 = 'ETH-EUR';
-var c2 = 'BTC-EUR';
-var choice = c1;
+var choice = 'ETH-EUR';
 var audio = new Audio('bell.mp3');
 
 function timestampToString(timestamp){
@@ -119,7 +108,6 @@ function haveChange(){
 		if(data){
 			var DD = JSON.parse(data);
 			$("#ping").html("Last get: " + timestampToString(DD.ping)+'sec');
-			//console.log("timastamp", DD.last);
 			if(DD.last > lastTimestamp){
 				getLastDate();
 				lastTimestamp = DD.last;
@@ -136,7 +124,6 @@ function getDataSince(min, max){
 	$.get(getSince + "/" + choice + "/" + new Date(min).getTime() + "/" + new Date(max).getTime(), function(data) {
 		if(data){
 			var DD = JSON.parse(data);
-			//console.log("hihi",DD.gdaxSell);
 			updateGraph(DD.spot, DD.buy, DD.sell, DD.gdaxBuy, DD.gdaxSell, DD.timestamp);
 		}else{
 			setTimeout(getDataSince(min,max), 200);
@@ -150,7 +137,7 @@ function getLastDate(){
 	$.get(getLast + "/" + choice, function(data) {
 		if(data){		
 			var DD = JSON.parse(data);
-			//console.log("here !", data);
+			
 
 			var b = parseFloat($("#alertBelow").val());
 			if (b && b > 0 && DD.buy < b && parseFloat(config.data.datasets[1].data[config.data.datasets[1].data.length - 1]) >= b) {
@@ -216,36 +203,16 @@ function update(){
 }
 
 function changeGraphMax(val){
-	if (graphMax != val){
-		
-		//console.log("Change !!");
+	if (graphMax != val){		
 		if (val > graphMax){
 			graphMax = val;
 			getDataSince(yesterday, Date.now());
 		}else{
 			graphMax = val;
 			update();
-		}
-		
+		}		
 	}
-}
-
-function changeMoney(){
-	if (config.data.datasets.length > 5){		
-		config.data.datasets.pop();
-		config.data.datasets.pop();
-	}
-	flag = false;
-	
-	if (choice == c1){
-		choice = c2;
-		$("#btn").html("Switch to " + c1);
-		getDataSince(yesterday, Date.now());
-	}else{
-		choice = c1;
-		$("#btn").html("Switch to " + c2);
-		getDataSince(yesterday, Date.now());
-	}
+	$("#nbValue").html("Display " + graphMax + " points" );
 }
 
 var flag = false;
@@ -253,7 +220,6 @@ function addMarker(state){
 	
 	var c = parseFloat( $("#cour").val() );
 	var v = parseFloat( $("#valeur").val() );
-	//console.log(state + " " + c + " " + v);
 	
 	if (flag == true && config.data.datasets.length > 5){
 		flag = false;

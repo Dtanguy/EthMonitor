@@ -1,10 +1,13 @@
+// MQTT Network, keep empty or remove if not use
 var fs = require("fs");
 eval(fs.readFileSync('./mod.js', 'utf-8'));
 
-setup('CRYPTO', 'dtanguy.fr', 3010);
+// (Node-ID, Broker adress) 
+setup('CRYPTO2', '');
 function connected(){
-	console.log('Connected!');
+	log('Connected!');
 }
+
 
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -12,11 +15,12 @@ var path = require('path');
 var fs = require('fs');
 var http = require('http');
 var https = require('https');
-var request = require("request")
-var crontab = require('node-crontab');
+var request = require("request");
+var readline = require('linebyline');
 
 
-/************************ FAKE DATABASE ************************/
+/************************ VERY UGLY FAKE DATABASE ************************/
+
 var LastTimestamp = new Date();
 var DDB_ETH = {
         "value": [
@@ -47,76 +51,37 @@ var DDB_BTC = {
 		]
 };
 
-function readDDB(DDB, devise) {
 
-	var today = new Date();
+function getFileName(devise, today){
 	var dd = today.getDate();
 	var mm = today.getMonth()+1;
 	var yyyy = today.getFullYear();
-	var filename = devise + "-" + dd + "-" + mm + "-" + yyyy + ".json";
-	
-	fs.readFile('./'+filename, function (err,data) {
-		if (err) {
-			return console.log(err);
-		}
-		if(data){
-			
-			try {
-				var json = JSON.parse(data);					
-				console.log("The file loaded!");
-				//console.log(json);
-				if (devise == 'ETH-EUR'){
-					DDB_ETH = json.DDB;
-				}else if (devise == 'BTC-EUR'){
-					DDB_BTC = json.DDB;
-				}
-			}
-			catch(err) {
-				
-				console.log(err);
-				if (devise == 'ETH-EUR'){
-					DDB_ETH = {
-							"value": [
-								{
-									"timestamp": -1,
-									"spot": -1,
-									"sell": -1,
-									"buy": -1,
-									"gdaxSell": -1,
-									"gdaxNbSell": -1,
-									"gdaxBuy": -1,
-									"gdaxNbBuy": -1
-								}
-							]
-					};
-				}else if (devise == 'BTC-EUR'){
-					DDB_BTC = {
-							"value": [
-								{
-									"timestamp": -1,
-									"spot": -1,
-									"sell": -1,
-									"buy": -1,
-									"gdaxSell": -1,
-									"gdaxNbSell": -1,
-									"gdaxBuy": -1,
-									"gdaxNbBuy": -1
-								}
-							]
-					};
-				}
-			}		
-		}
-	});
+	return filename = devise + "-" + dd + "-" + mm + "-" + yyyy + ".json";
 }
 	
-function writeDDB(devise){
+
+function readDDB(DDB, devise){
+	var filename = getFileName(devise, new Date());		
+    lineReader = readline('./' + filename);
+		
+	lineReader.on('error', function (erro) {
+		err('fail read line' + erro);
+	});
+
+	lineReader.on('line', function (line) {
+		try{
+			DDB.value.push(JSON.parse(line));				
+		}catch(erro){
+			err('fail parse line' + erro);
+		}
+	});
+			
+	lineReader.on('end', function () {});	
+}
 	
-	var today = new Date();
-	var dd = today.getDate();
-	var mm = today.getMonth()+1;
-	var yyyy = today.getFullYear();
-	var filename = devise + "-" + dd + "-" + mm + "-" + yyyy + ".json";
+
+function saveLine(devise){
+	var filename = getFileName(devise, new Date());
 
 	var DDB = {};
 	if (devise == 'ETH-EUR'){
@@ -124,18 +89,24 @@ function writeDDB(devise){
 	}else if (devise == 'BTC-EUR'){
 		DDB = DDB_BTC;
 	}
-
-	var fs = require('fs');		
-	fs.writeFile(filename, JSON.stringify ({'DDB': DDB}, null, 4), { flag: 'w' }, function(err) {
-		if(err) {
-			return console.log(err);
-		}
-	});  
-	//console.log("The file was saved!");
+		
+	try {
+		fs.appendFile(filename, JSON.stringify(DDB.value[DDB.value.length-1]) + '\r\n', 'utf8', function (erro) {
+		  if (erro){
+			err('Can\'t save log from ' + topic + ' ' + erro);
+		  }
+		});
+	} catch(erro) {
+		err('Can\'t save log from ' + topic + ' ' + erro);
+	}
 }
 
+
 readDDB(DDB_ETH, 'ETH-EUR');
-readDDB(DDB_BTC, 'BTC-EUR');
+//readDDB(DDB_BTC, 'BTC-EUR');
+
+
+
 
 
 /************************* EXPRESS **************************/
@@ -179,16 +150,17 @@ app.get('/', function (req, res) {
 
 
 
-/************************* END POINT **************************/
-subscribe('/ETH/getlast', function (data, fn) {
-	var last = DDB_ETH.value[DDB_ETH.value.length-1];
-	publish('/ETH/last', last, function(err, data){
-		if (err){
-			err('ETH/getlast => ' + err + JSON.stringify(err));
-		}
-	});
-});
 
+
+
+/************************* END POINT **************************/
+
+subscribe('/CRYPTO/ETH/getlast', function (msg) {
+	if (msg.ask){
+		var last = DDB_ETH.value[DDB_ETH.value.length-1];
+		publish('/CRYPTO/ETH/last', {last: tmp});
+	}
+});
 	
 	
 
@@ -199,7 +171,6 @@ app.get('/getsince/:devise/:min/:max', function (req, res) {
 		max = req.params.max;
 	}
 	var min = req.params.min;
-	//console.log("I got this !", limitTime);
 	
 	var toSend = {
 		'spot': [],
@@ -268,6 +239,7 @@ app.get('/getdata/:devise', function (req, res) {
 });
 
 	
+
 app.listen(3000, function () {
 	console.log('App listening on port 3000!');
 });
@@ -303,18 +275,19 @@ function ifGoodAndDiffSave(devise, tmp, flag) {
 			}else if (devise == 'BTC-EUR'){
 				DDB_BTC.value.push(tmp);
 			}				
-			writeDDB(devise);
 			
-			publish('/' + name + '/' + devise + '/last', tmp, function(r, data){
-				if (r){
-					err(devise + '/last => ' + r + JSON.stringify(r));
-				}
-			});
+			publish('/CRYPTO/' + devise + '/last', {last: tmp});
+			saveLine(devise)
+
 		}
 		
 	}	
 }
 
+
+//This ask value from the Coinbase and GDAX api,
+//And when they all respond (or time out)
+//Store the data
 function getPrice(devise, tmp, flag) {
 	
 	//Reset
@@ -334,11 +307,11 @@ function getPrice(devise, tmp, flag) {
     request({
 		url: coinBaseUrl + "/prices/" + devise + "/buy",
 		json: true
-	}, function (error, response, body) {
-		if (!error && response.statusCode === 200) {			
+	}, function (erro, response, body) {
+		if (!erro && response.statusCode == 200) {			
 			tmp.buy = body.data.amount;					
 		}else{
-			console.log("sell error :", error);
+			err("sell error :", erro);
 		}
 		flag[0] = true;
 		ifGoodAndDiffSave(devise, tmp, flag);
@@ -348,11 +321,11 @@ function getPrice(devise, tmp, flag) {
 	request({
 		url: coinBaseUrl + "/prices/" + devise + "/sell",
 		json: true
-	}, function (error, response, body) {
-		if (!error && response.statusCode === 200) {			
+	}, function (erro, response, body) {
+		if (!erro && response.statusCode == 200) {			
 			tmp.sell = body.data.amount;
 		}else{
-			console.log("sell error :", error);
+			err("sell error :", erro);
 		}		
 		flag[1] = true;
 		ifGoodAndDiffSave(devise, tmp, flag);
@@ -362,11 +335,11 @@ function getPrice(devise, tmp, flag) {
 	request({
 		url: coinBaseUrl + "/prices/" + devise + "/spot",
 		json: true
-	}, function (error, response, body) {
-		if (!error && response.statusCode === 200) {
+	}, function (erro, response, body) {
+		if (!erro && response.statusCode == 200) {
 			tmp.spot = body.data.amount;				
 		}else{
-			console.log("spot error :", error);
+			err("spot error :", erro);
 		}
 		flag[2] = true;
 		ifGoodAndDiffSave(devise, tmp, flag);
@@ -377,14 +350,14 @@ function getPrice(devise, tmp, flag) {
 		url: gdaxUrl + "/products/" + devise + "/book", //?level=3",
 		headers: {'User-Agent': 'request'},
 		json: true
-	}, function (error, response, body) {
-		if (!error && response.statusCode === 200) {
+	}, function (erro, response, body) {
+		if (!erro && response.statusCode == 200) {
 			tmp.gdaxSell = body.bids[0][0];
 			tmp.gdaxBuy = body.asks[0][0];
 			tmp.gdaxNbSell = body.bids[0][1];
 			tmp.gdaxNbBuy = body.asks[0][1];
 		}else{
-			console.log("error :", error);
+			err("error :", erro);
 		}
 		flag[3] = true;
 		ifGoodAndDiffSave(devise, tmp, flag);
@@ -392,15 +365,10 @@ function getPrice(devise, tmp, flag) {
 }
 
 
-//Every 5 sec, ask for new data
-var jobId = crontab.scheduleJob("*/5 * * * * *", function(){ 
-    getPrice('ETH-EUR', tmpE, flagE);	
-	getPrice('BTC-EUR', tmpB, flagB);	
-});
 
-//Every hour, reload DBB
-var jobPurge = crontab.scheduleJob("0 */1 * * *", function(){ 
-	readDDB(DDB_ETH, 'ETH-EUR');
-	readDDB(DDB_BTC, 'BTC-EUR');
-});
+//Every 5 sec, ask for new data
+setInterval(function (){
+	getPrice('ETH-EUR', tmpE, flagE);	
+	//getPrice('BTC-EUR', tmpB, flagB);	
+}, 1000*5);
 
